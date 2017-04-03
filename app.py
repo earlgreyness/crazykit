@@ -1,4 +1,4 @@
-import functools
+from functools import partial
 import logging
 
 import arrow
@@ -9,7 +9,8 @@ from sqlalchemy import Column, Unicode, Integer, Index, text, CheckConstraint
 from sqlalchemy_utils import ArrowType
 
 log = logging.getLogger(__name__)
-Column = functools.partial(Column, nullable=False)
+Column = partial(Column, nullable=False)
+ArrowType = partial(ArrowType, timezone=True)
 
 NO_WHITESPACE_REGEX = r'^\S*$'
 
@@ -20,10 +21,12 @@ cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
 
 
-class Participant(db.Model):
-    __tablename__ = 'participants'
-
+class PrimaryKeyMixin:
     id = Column(Integer, primary_key=True)
+
+
+class Participant(db.Model, PrimaryKeyMixin):
+    __tablename__ = 'participants'
 
     name = Column(Unicode)
     phone = Column(Unicode)
@@ -31,13 +34,19 @@ class Participant(db.Model):
     occupation = Column(Unicode)
     employees = Column(Unicode)
 
-    added = Column(ArrowType(timezone=True), default=arrow.utcnow)
-    subscribed_to_newsletter = Column(ArrowType(timezone=True), nullable=True)
+    added = Column(ArrowType, default=arrow.utcnow)
+    subscribed_to_newsletter = Column(ArrowType, nullable=True)
 
     __table_args__ = (
         CheckConstraint("email ~ '{}'".format(NO_WHITESPACE_REGEX)),
         Index('index_unique_lowercase_email', text('lower(email)'), unique=True),
     )
+
+
+class Prize(db.Model, PrimaryKeyMixin):
+    __tablename__ = 'prizes'
+
+    name = Column(Unicode)
 
 
 if __name__ == '__main__':
