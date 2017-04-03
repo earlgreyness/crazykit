@@ -1,0 +1,7 @@
+flask
+arrow
+sqlalchemy
+flask-cors
+flask-sqlalchemy
+sqlalchemy-utils
+psycopg2
