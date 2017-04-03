@@ -12,12 +12,9 @@ log = logging.getLogger(__name__)
 Column = functools.partial(Column, nullable=False)
 ArrowType = functools.partial(ArrowType, timezone=True)
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@localhost:5432/crazykit'
-SQLALCHEMY_TRACK_MODIFICATIONS = False
 NO_WHITESPACE_REGEX = r'^\S*$'
 
 app = Flask(__name__)
-app.config.from_object(__name__)
 app.config.from_object('settings')
 cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
