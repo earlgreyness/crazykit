@@ -10,12 +10,12 @@ from sqlalchemy_utils import ArrowType
 
 log = logging.getLogger(__name__)
 Column = functools.partial(Column, nullable=False)
-ArrowType = functools.partial(ArrowType, timezone=True)
 
 NO_WHITESPACE_REGEX = r'^\S*$'
 
 app = Flask(__name__)
 app.config.from_object('settings')
+logging.config.dictConfig(app.config['LOGGER_CONFIG'])
 cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
 
@@ -31,8 +31,8 @@ class Participant(db.Model):
     occupation = Column(Unicode)
     employees = Column(Unicode)
 
-    added = Column(ArrowType, default=arrow.utcnow)
-    subscribed_to_newsletter = Column(ArrowType, nullable=True)
+    added = Column(ArrowType(timezone=True), default=arrow.utcnow)
+    subscribed_to_newsletter = Column(ArrowType(timezone=True), nullable=True)
 
     __table_args__ = (
         CheckConstraint("email ~ '{}'".format(NO_WHITESPACE_REGEX)),
