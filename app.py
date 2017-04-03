@@ -5,15 +5,16 @@ import arrow
 from flask import Flask
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Boolean, Unicode, Integer
+from sqlalchemy import Column, Unicode, Integer, Index, text, CheckConstraint
 from sqlalchemy_utils import ArrowType
 
 log = logging.getLogger(__name__)
 Column = functools.partial(Column, nullable=False)
+ArrowType = functools.partial(ArrowType, timezone=True)
 
-
+SQLALCHEMY_DATABASE_URI = 'postgresql://user:password@localhost:5432/crazykit'
 SQLALCHEMY_TRACK_MODIFICATIONS = False
-
+NO_WHITESPACE_REGEX = r'^\S*$'
 
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -26,13 +27,20 @@ class Participant(db.Model):
     __tablename__ = 'participants'
 
     id = Column(Integer, primary_key=True)
+
     name = Column(Unicode)
     phone = Column(Unicode)
     email = Column(Unicode)
     occupation = Column(Unicode)
     employees = Column(Unicode)
-    added = Column(ArrowType, default=arrow.now)
-    subscribed_to_newsletter = Column(Boolean, default=False)
+
+    added = Column(ArrowType, default=arrow.utcnow)
+    subscribed_to_newsletter = Column(ArrowType, nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("email ~ '{}'".format(NO_WHITESPACE_REGEX)),
+        Index('index_unique_lowercase_email', text('lower(email)'), unique=True),
+    )
 
 
 if __name__ == '__main__':
