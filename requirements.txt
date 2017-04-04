@@ -17,4 +17,5 @@ python-dateutil==2.6.0    # via arrow
 six==1.10.0               # via flask-cors, python-dateutil, sqlalchemy-utils
 sqlalchemy-utils==0.32.14
 sqlalchemy==1.1.8
+uwsgi==2.0.15
 werkzeug==0.12.1          # via flask

@@ -5,3 +5,4 @@ flask-cors
 flask-sqlalchemy
 sqlalchemy-utils
 psycopg2
+uwsgi

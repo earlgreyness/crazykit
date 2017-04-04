@@ -1,0 +1,11 @@
+server {
+
+    listen 80;
+    server_name crazykit.avto-podborka.ru;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass unix:/var/www/crazykit/uwsgi_crazykit.sock;
+    }
+
+}

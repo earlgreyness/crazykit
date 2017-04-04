@@ -1,5 +1,5 @@
 from functools import partial
-import logging
+import logging.config
 
 import arrow
 from flask import Flask
@@ -33,20 +33,15 @@ class Participant(db.Model, PrimaryKeyMixin):
     email = Column(Unicode)
     occupation = Column(Unicode)
     employees = Column(Unicode)
+    selected_prizes = Column(Unicode)
 
-    added = Column(ArrowType, default=arrow.utcnow)
-    subscribed_to_newsletter = Column(ArrowType, nullable=True)
+    added = Column(ArrowType(), default=arrow.utcnow)
+    subscribed_to_newsletter = Column(ArrowType(), nullable=True)
 
     __table_args__ = (
         CheckConstraint("email ~ '{}'".format(NO_WHITESPACE_REGEX)),
         Index('index_unique_lowercase_email', text('lower(email)'), unique=True),
     )
-
-
-class Prize(db.Model, PrimaryKeyMixin):
-    __tablename__ = 'prizes'
-
-    name = Column(Unicode)
 
 
 if __name__ == '__main__':
