@@ -2,6 +2,8 @@ server {
 
     listen 80;
     server_name crazykit.avto-podborka.ru;
+    charset utf-8;
+    client_max_body_size 10M;
 
     location / {
         include uwsgi_params;
