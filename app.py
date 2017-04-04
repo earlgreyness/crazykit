@@ -3,7 +3,8 @@ import logging.handlers
 import logging
 
 import arrow
-from flask import Flask, request
+from celery import Celery
+from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Unicode, Integer, Index, text, CheckConstraint
@@ -11,7 +12,37 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy_utils import ArrowType
 
 Column = partial(Column, nullable=False)
+ArrowType = partial(ArrowType, timezone=True)
 NO_WHITESPACE_REGEX = r'^\S*$'
+
+# sudo apt-get install rabbitmq-server
+# sudo service rabbitmq-serveer status
+
+# service uwsgi_crazykit restart; service nginx restart
+# celery -A app.celery worker --task-events --loglevel=info \
+# --uid=www-data --logfile=/var/www/crazykit/logs/celery.log --detach
+
+# pkill -9 -f 'celery worker'
+# ps auxww | grep 'celery worker'
+
+
+def make_celery(app):
+    celery = Celery(app.import_name, broker=app.config['CELERY_BROKER_URL'])
+    TaskBase = celery.Task
+
+    class ContextTask(TaskBase):
+        abstract = True
+
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                app.logger.debug('=' * 80)
+                app.logger.debug('Celery Task Started with: {}, {}'.format(args, kwargs))
+                app.logger.debug('=' * 80)
+                return TaskBase.__call__(self, *args, **kwargs)
+
+    celery.Task = ContextTask
+    return celery
+
 
 app = Flask(__name__)
 app.config.from_object('settings')
@@ -30,6 +61,7 @@ requests_logger.setLevel(logging.DEBUG)
 
 cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
+celery = make_celery(app)
 
 
 class PrimaryKeyMixin:
@@ -47,8 +79,8 @@ class Participant(db.Model, PrimaryKeyMixin):
     website = Column(Unicode)
     selected_prizes = Column(Unicode)
 
-    added = Column(ArrowType(timezone=True), default=arrow.utcnow)
-    subscribed_to_newsletter = Column(ArrowType(timezone=True), nullable=True)
+    added = Column(ArrowType(), default=arrow.utcnow)
+    subscribed_to_newsletter = Column(ArrowType(), nullable=True)
 
     __table_args__ = (
         CheckConstraint("email ~ '{}' AND length(email) > 4".format(NO_WHITESPACE_REGEX)),
@@ -85,6 +117,7 @@ class SendPulseToken(db.Model, PrimaryKeyMixin):
     gotten = Column(ArrowType(), default=arrow.utcnow)
 
 
+@celery.task
 def add_participant(data):
     def get(key): return data.get(key, '').strip()
 
@@ -118,10 +151,19 @@ def add_participant(data):
 
 @app.route('/add', methods=['POST'])
 def show_add_participant():
-    app.logger.debug('New participant: {}'.format(request.form))
-    add_participant(request.form)
+
+    form = request.form.to_dict(flat=True)
+
+    app.logger.debug('New participant: {}'.format(form))
+    add_participant.delay(form)
 
     return ''
+
+
+@app.route('/46a5cd3b-9284-4b6a-9368-b7184946bfeb')
+def show_status():
+    participants = Participant.query.order_by(Participant.added.desc()).all()
+    return render_template('status.html', participants=participants)
 
 
 import sendpulse  # noqa: E402

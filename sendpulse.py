@@ -9,13 +9,13 @@ URL = 'https://api.sendpulse.com'
 
 def send(path, *, data, method):
 
-    def do(token):
+    def _send(token):
         headers = {'Authorization': '{0} {1}'.format(token.token_type, token.access_token)}
         return requests.request(method, URL + path, json=data, headers=headers)
 
-    resp = do(get_token())
+    resp = _send(get_token())
     if resp.status_code == 401:  # UNAUTHORIZED, token expired.
-        resp = do(authorize())
+        resp = _send(authorize())
 
     try:
         resp.raise_for_status()
@@ -64,7 +64,7 @@ def add_address(address):
     data = {
 
         # 'emails': 'a:1:{i:1;s:14:"kk92@yandex.ru";}'
-
+        # What should happen with unicode? What about ensure_ascii?
         'emails': json.dumps([
             {
                 'email': address,

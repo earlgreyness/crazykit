@@ -11,3 +11,5 @@ LOG_FILE = os.path.join(PROJECT_DIR, 'logs', 'app.log')
 SENDPULSE_CLIENT_ID = ''
 SENDPULSE_CLIENT_SECRET = ''
 SENDPULSE_ADDRESSBOOK_ID = ''
+
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
