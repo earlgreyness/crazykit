@@ -8,7 +8,6 @@ from flask import Flask, request, render_template
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Column, Unicode, Integer, Index, text, CheckConstraint
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy_utils import ArrowType
 
 Column = partial(Column, nullable=False)
@@ -148,27 +147,26 @@ def add_participant(data):
         if new:
             db.session.add(participant)
         elif (arrow.utcnow() - participant.added).total_seconds() > HOUR:
-            raise TooLateForUpdate("It's too late for {}".format(participant))
+            raise TooLateForUpdate
         for k, v in info.items():
             setattr(participant, k, v)
         db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        if isinstance(e, (IntegrityError, TooLateForUpdate)):
-            app.logger.error(e)
-        else:
-            raise
+
+    except TooLateForUpdate:
+        app.logger.warning("It's too late for {} to update.".format(participant))
 
     finally:
+
+        # Rollback uncommited changes.
+        db.session.rollback()
 
         if new:
             try:
                 sendpulse.add_address(info['email'])
                 participant.subscribed_to_newsletter = arrow.utcnow()
                 db.session.commit()
-            except Exception:
+            finally:
                 db.session.rollback()
-                raise
 
 
 @app.route('/add', methods=['POST'])
