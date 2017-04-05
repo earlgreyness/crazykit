@@ -73,5 +73,8 @@ def add_address(address):
     }
     response = send('/addressbooks/{}/emails'.format(abook_id), data=data, method='POST')
 
-    if not response['result']:
-        raise RuntimeError('address was not added to addressbook.')
+    if response['result'] is not True:
+        raise RuntimeError("Address '{0}' not submitted to SendPulse: {1}."
+                           .format(address, response))
+
+    app.logger.info("Address '{}' submitted to SendPulse.".format(address))

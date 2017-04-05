@@ -139,10 +139,12 @@ def add_participant(data):
         selected_prizes=get('prizes').strip(';'),
     )
 
-    participant = Participant.query.filter_by(email=info['email']).first() or Participant()
-    new = participant.id is None
+    new = True
 
     try:
+        participant = Participant.query.filter_by(email=info['email']).first() or Participant()
+        new = participant.id is None
+
         if new:
             db.session.add(participant)
         elif (arrow.utcnow() - participant.added).total_seconds() > HOUR:
