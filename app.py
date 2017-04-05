@@ -139,14 +139,15 @@ def add_participant(data):
     except Exception:
         db.session.rollback()
         raise
+    else:
 
-    try:
-        sendpulse.add_address(participant.email)
-        participant.subscribed_to_newsletter = arrow.utcnow()
-        db.session.commit()
-    except Exception:
-        db.session.rollback()
-        raise
+        try:
+            sendpulse.add_address(participant.email)
+            participant.subscribed_to_newsletter = arrow.utcnow()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
 
 
 @app.route('/add', methods=['POST'])
