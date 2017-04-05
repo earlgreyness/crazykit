@@ -14,6 +14,7 @@ from sqlalchemy_utils import ArrowType
 Column = partial(Column, nullable=False)
 ArrowType = partial(ArrowType, timezone=True)
 NO_WHITESPACE_REGEX = r'^\S*$'
+HOUR = 60 * 60
 
 # sudo apt-get install rabbitmq-server
 # sudo service rabbitmq-serveer status
@@ -87,6 +88,9 @@ class Participant(db.Model, PrimaryKeyMixin):
         Index('index_unique_lowercase_email', text('lower(email)'), unique=True),
     )
 
+    def __repr__(self):
+        return '<Participant "{}">'.format(self.email)
+
 
 class Prize(db.Model, PrimaryKeyMixin):
     __tablename__ = 'prizes'
@@ -117,37 +121,52 @@ class SendPulseToken(db.Model, PrimaryKeyMixin):
     gotten = Column(ArrowType(), default=arrow.utcnow)
 
 
+class TooLateForUpdate(Exception):
+    pass
+
+
 @celery.task
 def add_participant(data):
     def get(key): return data.get(key, '').strip()
 
-    try:
-        participant = Participant(
-            name=get('name'),
-            phone=get('tel'),
-            email=get('email'),
-            occupation=get('occupation'),
-            employees=get('workers'),
-            website=get('website'),
-            selected_prizes=get('prizes').strip(';'),
-        )
-        db.session.add(participant)
-        db.session.commit()
-    except IntegrityError as e:
-        db.session.rollback()
-        app.logger.error(e)
-    except Exception:
-        db.session.rollback()
-        raise
-    else:
+    info = dict(
+        name=get('name'),
+        phone=get('tel'),
+        email=get('email'),
+        occupation=get('occupation'),
+        employees=get('workers'),
+        website=get('website'),
+        selected_prizes=get('prizes').strip(';'),
+    )
 
-        try:
-            sendpulse.add_address(participant.email)
-            participant.subscribed_to_newsletter = arrow.utcnow()
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
+    participant = Participant.query.filter_by(email=info['email']).first() or Participant()
+    new = participant.id is None
+
+    try:
+        if new:
+            db.session.add(participant)
+        elif (arrow.utcnow() - participant.added).total_seconds() > HOUR:
+            raise TooLateForUpdate("It's too late for {}".format(participant))
+        for k, v in info.items():
+            setattr(participant, k, v)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        if isinstance(e, (IntegrityError, TooLateForUpdate)):
+            app.logger.error(e)
+        else:
             raise
+
+    finally:
+
+        if new:
+            try:
+                sendpulse.add_address(info['email'])
+                participant.subscribed_to_newsletter = arrow.utcnow()
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                raise
 
 
 @app.route('/add', methods=['POST'])
