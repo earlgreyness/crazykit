@@ -69,7 +69,7 @@
 
             <td>
               {% if p.website %}
-                {% set href = p.website if p.website.startswith('http') else 'http://{}'.format(p.website) %}
+                {% set href = p.website if p.website.lower().startswith('http') else 'http://{}'.format(p.website) %}
               <a href="{{ href }}">{{ p.website }}</a>
               {% endif %}
             </td>
