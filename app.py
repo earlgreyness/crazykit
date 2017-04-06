@@ -4,9 +4,11 @@ import logging
 
 import arrow
 from celery import Celery
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, redirect, url_for
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import (LoginManager, login_user, logout_user,
+                         UserMixin, login_required, current_user)
 from sqlalchemy import Column, Unicode, Integer, Index, text, CheckConstraint
 from sqlalchemy_utils import ArrowType
 
@@ -19,8 +21,8 @@ HOUR = 60 * 60
 # sudo service rabbitmq-serveer status
 
 # service uwsgi_crazykit restart; service nginx restart
-# celery -A app.celery worker --task-events --loglevel=info \
-# --uid=www-data --logfile=/var/www/crazykit/logs/celery.log --detach
+# celery -A app.celery worker --task-events --loglevel=info --uid=www-data \
+# --logfile=/var/www/crazykit/logs/celery.log --detach
 
 # pkill -9 -f 'celery worker'
 # ps auxww | grep 'celery worker'
@@ -58,6 +60,18 @@ app.logger.setLevel(logging.DEBUG)
 cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
 celery = make_celery(app)
+
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    if user_id == app.config['ADMIN_LOGIN']:
+        user = UserMixin()
+        user.id = user_id
+        return user
+    return None
 
 
 class PrimaryKeyMixin:
@@ -177,9 +191,31 @@ def show_add_participant():
 
 
 @app.route('/46a5cd3b-9284-4b6a-9368-b7184946bfeb')
+@login_required
 def show_status():
     participants = Participant.query.order_by(Participant.added.desc()).all()
     return render_template('status.html', participants=participants)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        if (username, password) == \
+                (app.config['ADMIN_LOGIN'], app.config['ADMIN_PASSWORD']):
+            login_user(load_user(username), remember=False)
+
+    if current_user.is_authenticated:
+        return redirect(url_for('show_status'))
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 
 import sendpulse  # noqa: E402
