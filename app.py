@@ -55,10 +55,6 @@ handler.setLevel(logging.DEBUG)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.DEBUG)
 
-requests_logger = logging.getLogger('requests')
-requests_logger.addHandler(handler)
-requests_logger.setLevel(logging.DEBUG)
-
 cors = CORS(app, resources={'*': {'origins': '*'}})
 db = SQLAlchemy(app)
 celery = make_celery(app)
