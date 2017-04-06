@@ -53,6 +53,7 @@
             <th>E-mail</th>
             <th>Телефон</th>
             <th>Сайт</th>
+            <th>Должность</th>
             <th>Род занятий</th>
             <th>Сотрудников</th>
             <th>Призы</th>
@@ -74,6 +75,7 @@
               {% endif %}
             </td>
 
+            <td>{{ p.job_title }}</td>
             <td>{{ p.occupation }}</td>
             <td>{{ p.employees }}</td>
             <td>{{ p.selected_prizes.replace(';', ', ') }}</td>

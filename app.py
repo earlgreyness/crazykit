@@ -22,7 +22,7 @@ HOUR = 60 * 60
 
 # service uwsgi_crazykit restart
 # celery -A app.celery worker -D -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
-# pkill -9 -f 'celery worker'
+# pkill -9 -f 'celery worker'; rm celery.pid
 # ps auxww | grep 'celery worker'
 
 
@@ -86,6 +86,7 @@ class Participant(db.Model, PrimaryKeyMixin):
     employees = Column(Unicode)
     website = Column(Unicode)
     selected_prizes = Column(Unicode)
+    job_title = Column(Unicode)
 
     added = Column(ArrowType(), default=arrow.utcnow)
     subscribed_to_newsletter = Column(ArrowType(), nullable=True)
@@ -144,6 +145,7 @@ def add_participant(data):
         employees=get('workers'),
         website=get('website'),
         selected_prizes=get('prizes').strip(';'),
+        job_title=get('job_title'),
     )
 
     new = True
