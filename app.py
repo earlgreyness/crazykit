@@ -18,11 +18,10 @@ NO_WHITESPACE_REGEX = r'^\S*$'
 HOUR = 60 * 60
 
 # sudo apt-get install rabbitmq-server
-# sudo service rabbitmq-serveer status
+# sudo service rabbitmq-server status
 
-# service uwsgi_crazykit restart; service nginx restart
+# service uwsgi_crazykit restart
 # celery -A app.celery worker -D -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
-
 # pkill -9 -f 'celery worker'
 # ps auxww | grep 'celery worker'
 
