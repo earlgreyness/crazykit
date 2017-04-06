@@ -21,7 +21,7 @@ HOUR = 60 * 60
 # sudo service rabbitmq-serveer status
 
 # service uwsgi_crazykit restart; service nginx restart
-# celery -A app.celery worker -D -E -c1 -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
+# celery -A app.celery worker -D -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
 
 # pkill -9 -f 'celery worker'
 # ps auxww | grep 'celery worker'
