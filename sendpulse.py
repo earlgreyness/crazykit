@@ -53,23 +53,11 @@ def get_token():
     return authorize() if token is None else token
 
 
-# Array ( [1] => elem 1 [2] => elem 2 [3] => elem 3 )
-
-# a:3:{i:1;s:6:"elem 1";i:2;s:6:"elem 2";i:3;s:7:" elem 3";}
-
-
 def add_address(address):
     abook_id = app.config['SENDPULSE_ADDRESSBOOK_ID']
 
     data = {
-
-        # 'emails': 'a:1:{i:1;s:14:"kk92@yandex.ru";}'
-        # What should happen with unicode? What about ensure_ascii?
-        'emails': json.dumps([
-            {
-                'email': address,
-            }
-        ])
+        'emails': json.dumps([{'email': address}])
     }
     response = send('/addressbooks/{}/emails'.format(abook_id), data=data, method='POST')
 
