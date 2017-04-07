@@ -44,8 +44,12 @@
 
       <table class="table table-striped table-condensed">
         <caption>
-          Всего участников: <b>{{ participants | length }}</b>,
-          последняя регистрация: <b>{{ participants[0].added.humanize(locale='ru') if participants else '' }}</b>
+          Всего участников: <b>{{ participants|length }}</b>,
+          последняя регистрация: <b>{{ participants[0].added.humanize(locale='ru') if participants else '' }}
+          </b>{% if frequency %}, частота (средняя/мгновенная):
+          {% set frequency = frequency * 3600 %}
+          {% set frequency_instant = frequency_instant * 3600 %}
+          <b>{{ frequency|round(1) }}</b> / <b>{{ frequency_instant|round(1)}}</b> чел. в час{% endif %}
         </caption>
         <thead>
           <tr>

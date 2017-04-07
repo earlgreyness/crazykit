@@ -16,3 +16,5 @@ CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
 
 ADMIN_LOGIN = ''
 ADMIN_PASSWORD = ''
+
+DELTA_HOURS = 6

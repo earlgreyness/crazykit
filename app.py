@@ -1,6 +1,7 @@
 from functools import partial
 import logging.handlers
 import logging
+from datetime import timedelta
 
 import arrow
 from celery import Celery
@@ -15,14 +16,14 @@ from sqlalchemy_utils import ArrowType
 Column = partial(Column, nullable=False)
 ArrowType = partial(ArrowType, timezone=True)
 NO_WHITESPACE_REGEX = r'^\S*$'
-HOUR = 60 * 60
+SECS_IN_HOUR = 3600
 
 # sudo apt-get install rabbitmq-server
 # sudo service rabbitmq-server status
 
 # service uwsgi_crazykit restart
 # celery -A app.celery worker -D -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
-# pkill -9 -f 'celery worker'; rm celery.pid
+# pkill -9 -f 'celery worker'; rm celeryd.pid
 # ps auxww | grep 'celery worker'
 
 
@@ -156,7 +157,7 @@ def add_participant(data):
 
         if new:
             db.session.add(participant)
-        elif (arrow.utcnow() - participant.added).total_seconds() > HOUR:
+        elif (arrow.utcnow() - participant.added).total_seconds() > SECS_IN_HOUR:
             raise TooLateForUpdate
         for k, v in info.items():
             setattr(participant, k, v)
@@ -194,7 +195,19 @@ def show_add_participant():
 @login_required
 def show_status():
     participants = Participant.query.order_by(Participant.added.desc()).all()
-    return render_template('status.html', participants=participants)
+
+    now = arrow.now()
+    delta_instant = timedelta(hours=app.config['DELTA_HOURS'])
+    amount_instant = Participant.query.filter(Participant.added > now - delta_instant).count()
+    frequency_instant = amount_instant / delta_instant.total_seconds()
+    delta_full_span = now - participants[-1].added
+    try:
+        frequency = len(participants) / delta_full_span.total_seconds()
+    except ZeroDivisionError:
+        frequency = None
+
+    return render_template('status.html', participants=participants,
+                           frequency=frequency, frequency_instant=frequency_instant)
 
 
 @app.route('/login', methods=['GET', 'POST'])
