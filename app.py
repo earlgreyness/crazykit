@@ -197,7 +197,7 @@ def show_status():
     participants = Participant.query.order_by(Participant.added.desc()).all()
 
     now = arrow.now()
-    delta_instant = timedelta(hours=app.config['DELTA_HOURS'])
+    delta_instant = timedelta(hours=app.config.get('DELTA_HOURS') or 6)
     amount_instant = Participant.query.filter(Participant.added > now - delta_instant).count()
     frequency_instant = amount_instant / delta_instant.total_seconds()
     delta_full_span = now - participants[-1].added
