@@ -89,7 +89,7 @@ class Participant(db.Model, PrimaryKeyMixin):
     selected_prizes = Column(Unicode)
     job_title = Column(Unicode)
 
-    added = Column(ArrowType(), default=arrow.utcnow)
+    added = Column(ArrowType(), default=arrow.now)
     subscribed_to_newsletter = Column(ArrowType(), nullable=True)
 
     __table_args__ = (
@@ -127,7 +127,7 @@ class SendPulseToken(db.Model, PrimaryKeyMixin):
     access_token = Column(Unicode)
     token_type = Column(Unicode)
     expires_in = Column(Integer)
-    gotten = Column(ArrowType(), default=arrow.utcnow)
+    gotten = Column(ArrowType(), default=arrow.now)
 
 
 class TooLateForUpdate(Exception):
@@ -157,7 +157,7 @@ def add_participant(data):
 
         if new:
             db.session.add(participant)
-        elif (arrow.utcnow() - participant.added).total_seconds() > SECS_IN_HOUR:
+        elif (arrow.now() - participant.added).total_seconds() > SECS_IN_HOUR:
             raise TooLateForUpdate
         for k, v in info.items():
             setattr(participant, k, v)
@@ -174,10 +174,36 @@ def add_participant(data):
         if new:
             try:
                 sendpulse.add_address(info['email'])
-                participant.subscribed_to_newsletter = arrow.utcnow()
+                participant.subscribed_to_newsletter = arrow.now()
                 db.session.commit()
             finally:
                 db.session.rollback()
+
+
+@celery.task
+def resubmit_failed_addresses():
+    try:
+        failed = (Participant.query
+                             .filter_by(subscribed_to_newsletter=None)
+                             .order_by(Participant.added)
+                             .all())
+        if failed:
+            app.logger.warning('Found failed addresses: {}'.format(failed))
+
+        for person in failed:
+            try:
+                app.logger.warning('Resubmitting address "{}"...'
+                                   .format(person.email))
+                sendpulse.add_address(person.email)
+                person.subscribed_to_newsletter = arrow.now()
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                app.logger.error('Failed to submit address "{}": {}'
+                                 .format(person.email, e))
+
+    finally:
+        db.session.rollback()
 
 
 @app.route('/add', methods=['POST'])
