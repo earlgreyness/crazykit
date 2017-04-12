@@ -2,10 +2,12 @@ from functools import partial
 import logging.handlers
 import logging
 from datetime import timedelta
+import csv
+from io import StringIO
 
 import arrow
 from celery import Celery
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, make_response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (LoginManager, login_user, logout_user,
@@ -234,6 +236,43 @@ def show_status():
 
     return render_template('status.html', participants=participants,
                            frequency=frequency, frequency_instant=frequency_instant)
+
+
+@app.route('/report')
+@login_required
+def generate_report():
+    stream = StringIO()
+    writer = csv.writer(stream, delimiter=";", quoting=csv.QUOTE_ALL)
+
+    PRIZES_RANGE = list(str(x) for x in range(1, 18))
+
+    # Writing header.
+    header = 'Добавлен Имя E-mail Телефон Сайт Должность Отрасль Сотрудников'.split()
+    header.extend(PRIZES_RANGE)
+    writer.writerow(header)
+
+    participants = Participant.query.order_by(Participant.added.desc()).all()
+    for p in participants:
+        prizes = p.selected_prizes.split(';')
+
+        row = [
+            p.added.format('YYYY-MM-DD HH:mm:ss'),
+            p.name,
+            p.email,
+            p.phone,
+            p.website,
+            p.job_title,
+            p.occupation,
+            p.employees,
+        ]
+        row.extend('1' if x in prizes else '' for x in PRIZES_RANGE)
+
+        writer.writerow(row)
+
+    response = make_response(stream.getvalue().encode('cp1251'))
+    response.headers['Content-Disposition'] = 'attachment; filename=crazykit.csv'
+    response.headers['Content-Type'] = 'text/csv; charset=windows-1251'
+    return response
 
 
 @app.route('/login', methods=['GET', 'POST'])

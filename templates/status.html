@@ -50,6 +50,8 @@
           {% set frequency = frequency * 3600 %}
           {% set frequency_instant = frequency_instant * 3600 %}
           <b>{{ frequency|round(1) }}</b> / <b>{{ frequency_instant|round(1)}}</b> чел. в час{% endif %}
+          <br>
+          <a href="{{ url_for('generate_report') }}">CSV-отчёт</a>
         </caption>
         <thead>
           <tr>
