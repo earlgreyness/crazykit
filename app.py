@@ -20,13 +20,17 @@ ArrowType = partial(ArrowType, timezone=True)
 NO_WHITESPACE_REGEX = r'^\S*$'
 SECS_IN_HOUR = 3600
 
-# sudo apt-get install rabbitmq-server
-# sudo service rabbitmq-server status
+"""
 
-# service uwsgi_crazykit restart
-# celery -A app.celery worker -D -l info --uid=www-data -f /var/www/crazykit/logs/celery.log
-# pkill -9 -f 'celery worker'; rm celeryd.pid
-# ps auxww | grep 'celery worker'
+sudo apt-get install rabbitmq-server
+sudo service rabbitmq-server status
+
+service uwsgi_crazykit restart
+celery -A app.celery worker -D -l INFO -f /var/www/crazykit/logs/celery.log --uid=www-data
+ps auxww | grep 'celery worker'
+pkill -9 -f 'celery worker'; rm celeryd.pid
+
+"""
 
 
 def make_celery(app):
@@ -109,19 +113,6 @@ class Prize(db.Model, PrimaryKeyMixin):
     label = Column(Integer, unique=True)
     vendor = Column(Unicode)
     name = Column(Unicode)
-
-    @staticmethod
-    def create_all():
-        prizes = [
-            (1, 'Sipuni', '3 мес. работы в виртуальной АТС на неограниченое кол-во операторов + 1 тел. номер'),
-        ]
-        try:
-            for label, vendor, name in prizes:
-                db.session.add(Prize(label=label, vendor=vendor, name=name))
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-            raise
 
 
 class SendPulseToken(db.Model, PrimaryKeyMixin):
@@ -254,7 +245,6 @@ def generate_report():
     participants = Participant.query.order_by(Participant.added.desc()).all()
     for p in participants:
         prizes = p.selected_prizes.split(';')
-
         row = [
             p.added.format('YYYY-MM-DD HH:mm:ss'),
             p.name,
@@ -266,7 +256,6 @@ def generate_report():
             p.employees,
         ]
         row.extend('1' if x in prizes else '' for x in PRIZES_RANGE)
-
         writer.writerow(row)
 
     response = make_response(stream.getvalue().encode('cp1251'))
