@@ -242,8 +242,7 @@ def generate_report():
     header.extend(PRIZES_RANGE)
     writer.writerow(header)
 
-    participants = Participant.query.order_by(Participant.added.desc()).all()
-    for p in participants:
+    for p in Participant.query.order_by(Participant.added.desc()):
         prizes = p.selected_prizes.split(';')
         row = [
             p.added.format('YYYY-MM-DD HH:mm:ss'),
@@ -258,9 +257,11 @@ def generate_report():
         row.extend('1' if x in prizes else '' for x in PRIZES_RANGE)
         writer.writerow(row)
 
-    response = make_response(stream.getvalue().encode('cp1251'))
+    encoding = 'windows-1251'
+
+    response = make_response(stream.getvalue().encode(encoding))
     response.headers['Content-Disposition'] = 'attachment; filename=crazykit.csv'
-    response.headers['Content-Type'] = 'text/csv; charset=windows-1251'
+    response.headers['Content-Type'] = 'text/csv; charset=' + encoding
     return response
 
 
